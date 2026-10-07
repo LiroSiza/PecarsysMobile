@@ -1,0 +1,14 @@
+# Framework Web y Servidor ASGI
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+python-multipart>=0.0.9
+
+# Procesamiento e Ingesta de Datos (Excel / PDF)
+pandas>=2.2.0
+openpyxl>=3.1.2
+pdfplumber>=0.10.3
+
+# Base de Datos y Clientes
+supabase>=2.3.0
+pydantic>=2.6.0
+python-dotenv>=1.0.1
