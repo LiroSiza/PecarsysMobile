@@ -12,11 +12,16 @@ load_dotenv(Path(__file__).with_name(".env"))
 
 @dataclass(frozen=True)
 class Settings:
+    environment: str
     supabase_url: str | None
     supabase_service_role_key: str | None
     cors_origins: list[str]
     default_sucursal: str
     report_utc_offset: str
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment == "production"
 
 
 @lru_cache
@@ -26,6 +31,7 @@ def get_settings() -> Settings:
     # Se acepta también la URL de la API REST (…supabase.co/rest/v1).
     url = url.removesuffix("/rest/v1")
     return Settings(
+        environment=os.getenv("ENVIRONMENT", "development").strip().lower(),
         supabase_url=url or None,
         supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip() or None,
         cors_origins=[origin.strip() for origin in origins.split(",") if origin.strip()],

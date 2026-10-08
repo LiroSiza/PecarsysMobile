@@ -33,7 +33,7 @@ Complementa a [Technical-Specifications.md](Technical-Specifications.md). Orden 
 - [x] Migración SQL: `profiles`, `catalog`, `inventory`, `inventory_snapshots`, `import_log`, vista `product_search`, funciones de importación, trigger de perfiles y políticas RLS → `supabase/migrations/`.
 - [x] Backend: configuración por `.env`, cliente Supabase, endpoint `POST /api/v1/import` que valida y guarda.
 - [x] Ejecutar las migraciones en el SQL Editor (esquema + permisos de la Data API) y probar una importación real: 2,777 precios, 454 existencias, 339 coincidencias, ~5 s; reimportar no duplica.
-- [ ] Carga independiente: permitir subir sólo existencias (varias veces al día) o sólo precios.
+- [x] Carga independiente: existencias, precios o ambos; se valida todo antes de guardar y el resumen se calcula desde la base.
 
 ## Fase 2 — Usuarios y roles
 
@@ -64,9 +64,11 @@ Complementa a [Technical-Specifications.md](Technical-Specifications.md). Orden 
 | Backend | Render (plan gratis se duerme ~50 s; Railway ≈ USD 5/mes si molesta) | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGINS`, `DEFAULT_SUCURSAL` |
 | Base de datos | Supabase | — |
 
-- [ ] Íconos PWA `pwa-192x192.png` y `pwa-512x512.png` (referenciados en `vite.config.ts`, hoy no existen).
-- [ ] `CORS_ORIGINS` con el dominio de Vercel.
-- [ ] Depurar `requirements.txt` (`pdfplumber` no se usa).
+- [x] Íconos PWA (192, 512, maskable, apple-touch, favicon) y manifiesto en español.
+- [x] Backend listo para producción: `render.yaml`, dependencias fijas, `/docs` oculto, encabezados de seguridad, CORS restringido.
+- [x] Frontend: `vercel.json` con CSP estricta y encabezados de seguridad; CAPTCHA Turnstile (se activa con `VITE_TURNSTILE_SITE_KEY`).
+- [ ] Desplegar siguiendo [Deployment-Guide.md](Deployment-Guide.md).
+- [x] Depurar `requirements.txt` (sin `pdfplumber`; versiones fijas).
 - [ ] Pruebas en Android e iOS: instalación en pantalla de inicio, búsqueda, importación.
 
 ## Necesario del cliente

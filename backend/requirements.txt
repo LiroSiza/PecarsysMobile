@@ -1,14 +1,17 @@
-# Framework Web y Servidor ASGI
-fastapi>=0.110.0
-uvicorn[standard]>=0.28.0
-python-multipart>=0.0.9
+# Versiones fijas: cada instalación (local o Render) es idéntica y verificable.
+# Para actualizar: cambiar la versión, probar localmente y volver a desplegar.
 
-# Procesamiento e Ingesta de Datos (Excel / PDF)
-pandas>=2.2.0
-openpyxl>=3.1.2
-pdfplumber>=0.10.3
+# Framework web y servidor ASGI
+fastapi==0.142.2
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
 
-# Base de Datos y Clientes
-supabase>=2.3.0
-pydantic>=2.6.0
-python-dotenv>=1.0.1
+# Lectura de Excel / CSV
+pandas==3.0.6
+openpyxl==3.1.5
+
+# Supabase, validación de sesión y configuración
+supabase==2.32.0
+httpx==0.28.1
+pydantic==2.13.5
+python-dotenv==1.2.4

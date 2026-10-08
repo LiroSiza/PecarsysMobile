@@ -24,6 +24,7 @@ const ERRORS_BY_CODE: Record<string, string> = {
   mfa_challenge_expired: 'El código expiró. Intenta de nuevo.',
   reauthentication_not_valid: 'El código de verificación es incorrecto o expiró.',
   session_expired: 'Tu sesión expiró. Vuelve a iniciar sesión.',
+  captcha_failed: 'No se pudo completar la verificación de seguridad. Intenta de nuevo.',
 }
 
 export function translateAuthError(error: AuthError | Error): string {

@@ -1,0 +1,30 @@
+# Render Blueprint — backend FastAPI de PECARSYS Móvil.
+# Los valores marcados con sync: false son secretos: se capturan en el panel de
+# Render al crear el servicio y nunca se guardan en el repositorio.
+services:
+  - type: web
+    name: pecarsys-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips '*' --no-server-header
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: ENVIRONMENT
+        value: production
+      - key: SUPABASE_URL
+        value: https://dveissdkttqrgkuwmsdu.supabase.co
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # Dominio de Vercel del frontend (sin "/" final), p. ej. https://pecarsys-movil.vercel.app
+      - key: CORS_ORIGINS
+        sync: false
+      - key: DEFAULT_SUCURSAL
+        value: VERACRUZ
+      - key: REPORT_UTC_OFFSET
+        value: "-06:00"

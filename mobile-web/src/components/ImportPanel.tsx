@@ -20,8 +20,8 @@ export default function ImportPanel({ snapshots, onImported, onGoToSearch }: Imp
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!inventoryFile || !pricesFile) {
-      setError('Falta seleccionar ' + (!inventoryFile ? 'el archivo del paso 1 (existencias).' : 'el archivo del paso 2 (lista de precios).'))
+    if (!inventoryFile && !pricesFile) {
+      setError('Selecciona al menos un archivo.')
       return
     }
 
@@ -53,7 +53,8 @@ export default function ImportPanel({ snapshots, onImported, onGoToSearch }: Imp
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-lg font-bold text-slate-900">Actualizar existencias y precios</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Sube los dos archivos <strong>tal como los recibes</strong>: no hace falta quitar títulos, imágenes ni convertir columnas.
+          Sube <strong>uno o ambos</strong> archivos, tal como los recibes: no hace falta quitar títulos, imágenes ni convertir columnas.
+          Las existencias puedes actualizarlas varias veces al día sin volver a subir la lista de precios.
         </p>
         {snapshots.map((snapshot) => (
           <p key={snapshot.sucursal} className="mt-2 text-xs text-slate-500">
@@ -86,15 +87,22 @@ export default function ImportPanel({ snapshots, onImported, onGoToSearch }: Imp
         )}
         <button
           type="submit"
-          disabled={loading || !inventoryFile || !pricesFile}
+          disabled={loading || (!inventoryFile && !pricesFile)}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-4 text-base font-semibold text-white transition hover:bg-emerald-500 disabled:bg-slate-300"
         >
           {loading ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}
-          {loading ? 'Procesando archivos...' : 'Actualizar información'}
+          {loading ? 'Procesando...' : submitLabel(inventoryFile, pricesFile)}
         </button>
       </form>
     </section>
   )
+}
+
+function submitLabel(inventoryFile: File | null, pricesFile: File | null): string {
+  if (inventoryFile && pricesFile) return 'Actualizar existencias y precios'
+  if (inventoryFile) return 'Actualizar existencias'
+  if (pricesFile) return 'Actualizar precios'
+  return 'Selecciona al menos un archivo'
 }
 
 interface FileStepProps {
@@ -114,21 +122,31 @@ function FileStep({ step, title, description, example, file, onChange }: FileSte
           {file ? <CheckCircle2 size={18} /> : step}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Paso {step}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Paso {step} · opcional</p>
           <h3 className="font-bold text-slate-900">{title}</h3>
           <p className="mt-1 text-sm text-slate-600">{description}</p>
           <p className="mt-1 text-xs text-slate-400">Ejemplo: {example}</p>
           <div className={`mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${file ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
             <FileSpreadsheet className="shrink-0" size={18} />
             <span className="truncate">{file ? file.name : 'Toca para elegir el archivo'}</span>
-            {file && <span className="ml-auto shrink-0 text-xs underline">Cambiar</span>}
+            {file && (
+              <button
+                type="button"
+                onClick={(event) => { event.preventDefault(); onChange(null) }}
+                className="ml-auto shrink-0 text-xs underline"
+              >
+                Quitar
+              </button>
+            )}
           </div>
         </div>
       </div>
       <input
         type="file"
-        accept=".xlsx,.xlsm,.xls,.csv"
+        accept=".xlsx,.xlsm,.csv"
         onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+        // Permite volver a elegir el mismo archivo después de quitarlo.
+        onClick={(event) => { event.currentTarget.value = '' }}
         className="sr-only"
       />
     </label>
@@ -142,17 +160,20 @@ interface ImportResultProps {
 }
 
 function ImportResult({ result, onGoToSearch, onStartOver }: ImportResultProps) {
-  const { summary, metadata, warnings } = result
+  const { summary, metadata, warnings, updated } = result
+  const title = updated.length === 2 ? 'Existencias y precios actualizados' : updated[0] === 'inventory' ? 'Existencias actualizadas' : 'Precios actualizados'
   return (
     <section className="space-y-4">
       <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
         <div className="flex items-center gap-2 text-emerald-700">
           <CheckCircle2 size={22} />
-          <h2 className="text-lg font-bold">Información actualizada</h2>
+          <h2 className="text-lg font-bold">{title}</h2>
         </div>
-        <p className="mt-1 text-sm text-slate-600">
-          {metadata.sucursal ?? 'Sucursal'} · existencias al {formatCorte(metadata.fecha_corte)}
-        </p>
+        {updated.includes('inventory') && (
+          <p className="mt-1 text-sm text-slate-600">
+            {metadata.sucursal ?? 'Sucursal'} · existencias al {formatCorte(metadata.fecha_corte)}
+          </p>
+        )}
         <div className="mt-4 grid grid-cols-2 gap-3">
           <Stat label="Artículos en existencias" value={summary.inventory_rows} />
           <Stat label="Con precio" value={summary.matched_rows} tone="good" />

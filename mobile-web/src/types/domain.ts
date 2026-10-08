@@ -53,18 +53,17 @@ export interface ImportSummary {
   price_rows: number
   matched_rows: number
   inventory_without_price: number
-  price_without_inventory: number
-  total_rows: number
 }
 
 export interface ImportMetadata {
   sucursal: string | null
   fecha_corte: string | null
-  encabezado_reporte: string | null
+  encabezado_reporte?: string | null
 }
 
 export interface ImportResponse {
   status: 'success'
+  updated: ('inventory' | 'prices')[]
   summary: ImportSummary
   warnings: string[]
   metadata: ImportMetadata

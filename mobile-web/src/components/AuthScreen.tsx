@@ -2,9 +2,11 @@ import { AlertTriangle, Loader2, MailCheck } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { isStrongPassword, translateAuthError } from '../services/password'
+import { TURNSTILE_SITE_KEY } from '../services/captcha'
 import { authRedirect, supabase } from '../services/supabase'
 import AuthShell from './AuthShell'
 import PasswordInput from './PasswordInput'
+import Turnstile from './Turnstile'
 
 type Mode = 'login' | 'register' | 'forgot'
 
@@ -26,6 +28,8 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(redirectError)
   const [notice, setNotice] = useState<{ title: string; body: string } | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaKey, setCaptchaKey] = useState(0)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -35,16 +39,21 @@ export default function AuthScreen() {
       setError('La contraseña no cumple los requisitos de seguridad.')
       return
     }
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setError('Espera a que termine la verificación de seguridad e intenta de nuevo.')
+      return
+    }
+    const captcha = captchaToken ?? undefined
 
     setLoading(true)
     if (mode === 'login') {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: cleanEmail, password })
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: cleanEmail, password, options: { captchaToken: captcha } })
       if (signInError) setError(translateAuthError(signInError))
     } else if (mode === 'register') {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
-        options: { data: { full_name: fullName.trim() }, emailRedirectTo: window.location.origin },
+        options: { data: { full_name: fullName.trim() }, emailRedirectTo: window.location.origin, captchaToken: captcha },
       })
       if (signUpError) setError(translateAuthError(signUpError))
       else if (!data.session) {
@@ -54,7 +63,7 @@ export default function AuthScreen() {
         })
       }
     } else {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo: window.location.origin })
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo: window.location.origin, captchaToken: captcha })
       // Mismo mensaje exista o no la cuenta, para no revelar qué correos están registrados.
       if (resetError && resetError.code?.includes('rate_limit')) setError(translateAuthError(resetError))
       else {
@@ -64,6 +73,9 @@ export default function AuthScreen() {
         })
       }
     }
+    // El token del CAPTCHA es de un solo uso: se pide uno nuevo para el siguiente intento.
+    setCaptchaToken(null)
+    setCaptchaKey((key) => key + 1)
     setLoading(false)
   }
 
@@ -120,6 +132,7 @@ export default function AuthScreen() {
             showRules={mode === 'register'}
           />
         )}
+        <Turnstile key={captchaKey} onToken={setCaptchaToken} />
         {error && (
           <p className="flex gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700">
             <AlertTriangle className="shrink-0" size={18} /> {error}

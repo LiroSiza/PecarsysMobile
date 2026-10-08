@@ -8,27 +8,31 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon-32x32.png', 'apple-touch-icon.png'],
+      // Sólo se guarda en el teléfono la app (HTML, JS, CSS, íconos). Las respuestas de
+      // Supabase y del backend nunca pasan por la caché del service worker.
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest}'],
+        navigateFallback: '/index.html',
+        cleanupOutdatedCaches: true,
+      },
       manifest: {
-        name: 'Pecarsys Llantas',
-        short_name: 'LlantasApp',
-        description: 'Consulta de inventario y precios de llantas',
-        theme_color: '#0f172a',
-        background_color: '#ffffff',
+        name: 'PECARSYS Móvil',
+        short_name: 'PECARSYS',
+        description: 'Consulta de existencias y precios de llantas',
+        lang: 'es-MX',
+        start_url: '/',
+        scope: '/',
         display: 'standalone',
+        orientation: 'portrait',
+        theme_color: '#0f172a',
+        background_color: '#0f172a',
         icons: [
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
-        ]
-      }
-    })
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+    }),
   ],
 })

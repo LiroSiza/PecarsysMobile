@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from io import BytesIO
 from typing import Any
 
@@ -40,20 +40,26 @@ PRICE_ALIASES: dict[str, set[str]] = {
 }
 
 PRICE_COLUMNS = ("precio_1", "precio_2", "precio_3", "precio_4", "precio_5", "precio_especial")
-EXCEL_EXTENSIONS = {"xlsx", "xlsm", "xls"}
+EXCEL_EXTENSIONS = {"xlsx", "xlsm"}
 HEADER_SEARCH_ROWS = 20
 VALID_KEY = re.compile(r"^[A-Z0-9][A-Z0-9-]*$")
 
 
 @dataclass(frozen=True)
-class ReconciliationResult:
-    records: list[dict[str, Any]]
-    summary: dict[str, int]
+class InventoryImport:
+    """Reporte de existencias del ERP, listo para guardar."""
+
+    rows: list[dict[str, Any]]
+    metadata: dict[str, str | None]
     warnings: list[str]
-    metadata: dict[str, str | None] = field(default_factory=dict)
-    # Filas listas para guardar en Supabase (tablas inventory y catalog).
-    inventory_rows: list[dict[str, Any]] = field(default_factory=list)
-    catalog_rows: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class PriceImport:
+    """Lista de precios (todas sus pestañas), lista para guardar."""
+
+    rows: list[dict[str, Any]]
+    warnings: list[str]
 
 
 @dataclass(frozen=True)
@@ -79,7 +85,7 @@ def _read_raw_sheets(contents: bytes, filename: str) -> dict[str, pd.DataFrame]:
             return pd.read_excel(BytesIO(contents), sheet_name=None, header=None, dtype=object)
     except Exception as exc:
         raise FileProcessingError(f"No fue posible leer el archivo {filename}.") from exc
-    raise FileProcessingError("Sólo se permiten archivos .xlsx, .xlsm, .xls o .csv.")
+    raise FileProcessingError("Sólo se permiten archivos .xlsx, .xlsm o .csv.")
 
 
 def _locate_table(name: str, raw: pd.DataFrame, aliases: dict[str, set[str]]) -> _Sheet | None:
@@ -258,77 +264,18 @@ def _catalog_rows(prices: pd.DataFrame) -> list[dict[str, Any]]:
     return rows
 
 
-def reconcile_files(
-    inventory_contents: bytes,
-    inventory_filename: str,
-    prices_contents: bytes,
-    prices_filename: str,
-) -> ReconciliationResult:
+def parse_inventory(contents: bytes, filename: str) -> InventoryImport:
     warnings: list[str] = []
-    inventory, metadata = _load_inventory(inventory_contents, inventory_filename, warnings)
-    prices = _load_prices(prices_contents, prices_filename, warnings)
-
+    inventory, metadata = _load_inventory(contents, filename, warnings)
     inventory["existencia"] = _numeric(inventory, "existencia")
     inventory["apartados"] = _numeric(inventory, "apartados")
+    return InventoryImport(rows=_inventory_rows(inventory), metadata=metadata, warnings=warnings)
+
+
+def parse_prices(contents: bytes, filename: str) -> PriceImport:
+    warnings: list[str] = []
+    prices = _load_prices(contents, filename, warnings)
     prices["inventario_matriz"] = _numeric(prices, "inventario_matriz")
     for column in PRICE_COLUMNS:
         prices[column] = _numeric(prices, column)
-
-    inventory_keys = set(inventory["pecarsys"])
-    price_keys = set(prices["pecarsys"])
-    merged = inventory.merge(prices, on="pecarsys", how="outer", suffixes=("_inv", "_price"), indicator=True)
-
-    def row_value(row: pd.Series, column: str) -> object:
-        # La marca del ERP tiene prioridad sobre la de la lista de precios.
-        for candidate in (column, f"{column}_inv", f"{column}_price"):
-            if candidate in row.index and not pd.isna(row[candidate]) and str(row[candidate]).strip():
-                return row[candidate]
-        return ""
-
-    records: list[dict[str, Any]] = []
-    for _, row in merged.iterrows():
-        existencia = int(row_value(row, "existencia") or 0)
-        apartados = int(row_value(row, "apartados") or 0)
-        record: dict[str, Any] = {
-            "pecarsys": row["pecarsys"],
-            "medida": _text(row_value(row, "medida")),
-            "marca": _text(row_value(row, "marca")),
-            "modelo": _text(row_value(row, "modelo")),
-            "descripcion": _text(row_value(row, "descripcion")),
-            "linea": _text(row_value(row, "linea")),
-            "indice": _text(row_value(row, "indice")),
-            "categoria": _text(row_value(row, "categoria")),
-            "esquema_precio": _text(row_value(row, "esquema_precio")) or None,
-            "existencia": existencia,
-            "apartados": apartados,
-            "disponible": existencia - apartados,
-            "inventario_matriz": int(row_value(row, "inventario_matriz") or 0),
-            "match_status": row["_merge"],
-        }
-        for column in PRICE_COLUMNS:
-            record[column] = round(float(row_value(row, column) or 0), 2)
-        records.append(record)
-
-    only_inventory = inventory_keys - price_keys
-    only_prices = price_keys - inventory_keys
-    if only_inventory:
-        warnings.append(
-            f"{len(only_inventory)} productos de inventario no tienen precio: "
-            f"{', '.join(sorted(only_inventory)[:5])}."
-        )
-
-    return ReconciliationResult(
-        records=records,
-        inventory_rows=_inventory_rows(inventory),
-        catalog_rows=_catalog_rows(prices),
-        summary={
-            "inventory_rows": len(inventory),
-            "price_rows": len(prices),
-            "matched_rows": len(inventory_keys & price_keys),
-            "inventory_without_price": len(only_inventory),
-            "price_without_inventory": len(only_prices),
-            "total_rows": len(records),
-        },
-        warnings=warnings,
-        metadata=metadata,
-    )
+    return PriceImport(rows=_catalog_rows(prices), warnings=warnings)

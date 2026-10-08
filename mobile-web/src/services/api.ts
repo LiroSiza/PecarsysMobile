@@ -3,10 +3,10 @@ import { supabase } from './supabase'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000'
 
-export async function processExcelFiles(inventoryFile: File, pricesFile: File): Promise<ImportResponse> {
+export async function processExcelFiles(inventoryFile: File | null, pricesFile: File | null): Promise<ImportResponse> {
   const formData = new FormData()
-  formData.append('inventory_file', inventoryFile)
-  formData.append('prices_file', pricesFile)
+  if (inventoryFile) formData.append('inventory_file', inventoryFile)
+  if (pricesFile) formData.append('prices_file', pricesFile)
 
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
