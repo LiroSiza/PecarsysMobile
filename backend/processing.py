@@ -51,6 +51,9 @@ class ReconciliationResult:
     summary: dict[str, int]
     warnings: list[str]
     metadata: dict[str, str | None] = field(default_factory=dict)
+    # Filas listas para guardar en Supabase (tablas inventory y catalog).
+    inventory_rows: list[dict[str, Any]] = field(default_factory=list)
+    catalog_rows: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -220,6 +223,41 @@ def _load_prices(contents: bytes, filename: str, warnings: list[str]) -> pd.Data
     return _prepare(pd.concat(frames, ignore_index=True), "precios", warnings)
 
 
+def _inventory_rows(inventory: pd.DataFrame) -> list[dict[str, Any]]:
+    return [
+        {
+            "pecarsys": row["pecarsys"],
+            "descripcion": _text(row.get("descripcion")),
+            "linea": _text(row.get("linea")) or None,
+            "marca": _text(row.get("marca")) or None,
+            "existencia": int(row["existencia"]),
+            "apartados": int(row["apartados"]),
+        }
+        for _, row in inventory.iterrows()
+    ]
+
+
+def _catalog_rows(prices: pd.DataFrame) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for _, row in prices.iterrows():
+        record: dict[str, Any] = {
+            "pecarsys": row["pecarsys"],
+            "medida": _text(row.get("medida")) or None,
+            "marca": _text(row.get("marca")) or None,
+            "modelo": _text(row.get("modelo")) or None,
+            "indice": _text(row.get("indice")) or None,
+            "categoria": _text(row.get("categoria")) or None,
+            "esquema_precio": row.get("esquema_precio"),
+            "inventario_matriz": int(row["inventario_matriz"]),
+        }
+        # Un precio ausente se guarda como NULL, no como 0.
+        for column in PRICE_COLUMNS:
+            value = float(row[column])
+            record[column] = round(value, 2) if value > 0 else None
+        rows.append(record)
+    return rows
+
+
 def reconcile_files(
     inventory_contents: bytes,
     inventory_filename: str,
@@ -281,6 +319,8 @@ def reconcile_files(
 
     return ReconciliationResult(
         records=records,
+        inventory_rows=_inventory_rows(inventory),
+        catalog_rows=_catalog_rows(prices),
         summary={
             "inventory_rows": len(inventory),
             "price_rows": len(prices),

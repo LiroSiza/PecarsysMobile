@@ -1,17 +1,17 @@
 import { AlertTriangle, CheckCircle2, FileSpreadsheet, Loader2, Search, Upload } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import type { ImportResponse } from '../types/domain'
+import type { ImportResponse, InventorySnapshot } from '../types/domain'
 import { processExcelFiles } from '../services/api'
 import { formatCorte } from '../services/format'
 
 interface ImportPanelProps {
-  lastImport: ImportResponse | null
+  snapshots: InventorySnapshot[]
   onImported: (result: ImportResponse) => void
   onGoToSearch: () => void
 }
 
-export default function ImportPanel({ lastImport, onImported, onGoToSearch }: ImportPanelProps) {
+export default function ImportPanel({ snapshots, onImported, onGoToSearch }: ImportPanelProps) {
   const [inventoryFile, setInventoryFile] = useState<File | null>(null)
   const [pricesFile, setPricesFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
@@ -55,11 +55,11 @@ export default function ImportPanel({ lastImport, onImported, onGoToSearch }: Im
         <p className="mt-1 text-sm text-slate-600">
           Sube los dos archivos <strong>tal como los recibes</strong>: no hace falta quitar títulos, imágenes ni convertir columnas.
         </p>
-        {lastImport && (
-          <p className="mt-2 text-xs text-slate-500">
-            Última actualización: {lastImport.metadata.sucursal ?? 'Sucursal'} · corte {formatCorte(lastImport.metadata.fecha_corte)}
+        {snapshots.map((snapshot) => (
+          <p key={snapshot.sucursal} className="mt-2 text-xs text-slate-500">
+            Información actual: {snapshot.sucursal} · existencias al {formatCorte(snapshot.taken_at)}
           </p>
-        )}
+        ))}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">

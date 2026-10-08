@@ -1,26 +1,51 @@
 export type UserRole = 'admin' | 'vendedor'
 
+export interface Profile {
+  id: string
+  email: string
+  full_name: string
+  role: UserRole
+  is_active: boolean
+  created_at: string
+}
+
+// Fila de la vista product_search de Supabase.
 export interface TireRecord {
   pecarsys: string
-  medida: string
-  marca: string
-  modelo: string
+  sucursal: string | null
   descripcion: string
-  linea: string
-  indice: string
-  categoria: string
+  marca: string | null
+  linea: string | null
+  medida: string | null
+  modelo: string | null
+  indice: string | null
+  categoria: string | null
   esquema_precio: 'escalones' | 'unico' | null
   existencia: number
   apartados: number
   disponible: number
-  inventario_matriz: number
-  precio_1: number
-  precio_2: number
-  precio_3: number
-  precio_4: number
-  precio_5: number
-  precio_especial: number
+  inventario_matriz: number | null
+  precio_1: number | null
+  precio_2: number | null
+  precio_3: number | null
+  precio_4: number | null
+  precio_5: number | null
+  precio_especial: number | null
   match_status: 'both' | 'left_only' | 'right_only'
+}
+
+export interface InventorySnapshot {
+  sucursal: string
+  taken_at: string | null
+  imported_at: string
+  row_count: number
+}
+
+export interface ProductData {
+  products: TireRecord[]
+  snapshots: InventorySnapshot[]
+  fetchedAt: string
+  offline: boolean
 }
 
 export interface ImportSummary {
@@ -43,5 +68,4 @@ export interface ImportResponse {
   summary: ImportSummary
   warnings: string[]
   metadata: ImportMetadata
-  records: TireRecord[]
 }

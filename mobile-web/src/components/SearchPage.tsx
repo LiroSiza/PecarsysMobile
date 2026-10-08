@@ -1,6 +1,7 @@
-import { Package, Search, X } from 'lucide-react'
+import type { UseQueryResult } from '@tanstack/react-query'
+import { Loader2, Package, RefreshCw, Search, WifiOff, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import type { ImportMetadata, TireRecord } from '../types/domain'
+import type { ProductData, TireRecord } from '../types/domain'
 import { formatCorte, formatMoney, normalizeSearch } from '../services/format'
 
 const PAGE_SIZE = 50
@@ -16,12 +17,38 @@ const PRICE_TIERS = [
 ] as const
 
 interface SearchPageProps {
-  tires: TireRecord[]
-  metadata: ImportMetadata | null
+  query: UseQueryResult<ProductData>
+  isAdmin: boolean
   onGoToImport: () => void
 }
 
-export default function SearchPage({ tires, metadata, onGoToImport }: SearchPageProps) {
+export default function SearchPage({ query, isAdmin, onGoToImport }: SearchPageProps) {
+  if (query.isPending) {
+    return <div className="flex flex-col items-center gap-2 p-10 text-slate-500"><Loader2 className="animate-spin" /> Cargando existencias y precios…</div>
+  }
+  if (query.isError) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">
+        No fue posible cargar la información. Revisa tu conexión.
+        <button onClick={() => query.refetch()} className="mx-auto mt-3 flex items-center gap-2 rounded-xl bg-white px-4 py-2 font-medium text-red-700 shadow-sm">
+          <RefreshCw size={16} /> Reintentar
+        </button>
+      </div>
+    )
+  }
+  return <ProductSearch data={query.data} isAdmin={isAdmin} refreshing={query.isFetching} onRefresh={() => query.refetch()} onGoToImport={onGoToImport} />
+}
+
+interface ProductSearchProps {
+  data: ProductData
+  isAdmin: boolean
+  refreshing: boolean
+  onRefresh: () => void
+  onGoToImport: () => void
+}
+
+function ProductSearch({ data, isAdmin, refreshing, onRefresh, onGoToImport }: ProductSearchProps) {
+  const tires = data.products
   const [searchTerm, setSearchTerm] = useState('')
   const [onlyInStock, setOnlyInStock] = useState(true)
   const [visible, setVisible] = useState(PAGE_SIZE)
@@ -29,7 +56,7 @@ export default function SearchPage({ tires, metadata, onGoToImport }: SearchPage
   const indexed = useMemo(
     () => tires.map((tire) => ({
       tire,
-      text: normalizeSearch([tire.pecarsys, tire.descripcion, tire.medida, tire.marca, tire.modelo].join(' ')),
+      text: normalizeSearch([tire.pecarsys, tire.descripcion, tire.medida, tire.marca, tire.modelo].filter(Boolean).join(' ')),
     })),
     [tires],
   )
@@ -45,20 +72,30 @@ export default function SearchPage({ tires, metadata, onGoToImport }: SearchPage
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
         <p className="text-slate-600">Todavía no hay información cargada.</p>
-        <button onClick={onGoToImport} className="mt-4 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-500">
-          Subir existencias y precios
-        </button>
+        {isAdmin && (
+          <button onClick={onGoToImport} className="mt-4 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-500">
+            Subir existencias y precios
+          </button>
+        )}
       </div>
     )
   }
 
   return (
     <section>
-      {metadata && (
-        <p className="mb-3 px-1 text-xs text-slate-500">
-          {metadata.sucursal ?? 'Sucursal'} · existencias al {formatCorte(metadata.fecha_corte)}
+      {data.offline && (
+        <p className="mb-3 flex items-center gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
+          <WifiOff className="shrink-0" size={18} /> Sin conexión: mostrando la información descargada el {formatCorte(data.fetchedAt)}.
         </p>
       )}
+      <div className="mb-3 flex items-center gap-2 px-1 text-xs text-slate-500">
+        <span className="flex-1">
+          {data.snapshots.map((snapshot) => `${snapshot.sucursal} · existencias al ${formatCorte(snapshot.taken_at)}`).join(' · ') || 'Sin corte de existencias'}
+        </span>
+        <button onClick={onRefresh} disabled={refreshing} aria-label="Actualizar" className="rounded-lg p-1.5 hover:bg-slate-200 disabled:opacity-50">
+          <RefreshCw className={refreshing ? 'animate-spin' : ''} size={16} />
+        </button>
+      </div>
       <div className="sticky top-0 z-10 -mx-4 bg-slate-50 px-4 pb-3 pt-1">
         <div className="relative">
           <Search className="absolute left-3 top-3.5 text-slate-400" size={20} />
@@ -101,7 +138,7 @@ export default function SearchPage({ tires, metadata, onGoToImport }: SearchPage
 
 function TireCard({ tire }: { tire: TireRecord }) {
   const title = tire.descripcion || [tire.medida, tire.marca, tire.modelo].filter(Boolean).join(' ')
-  const prices = PRICE_TIERS.filter(({ field }) => tire[field] > 0)
+  const prices = PRICE_TIERS.filter(({ field }) => (tire[field] ?? 0) > 0)
   const singlePrice = tire.esquema_precio === 'unico' || (prices.length === 1 && prices[0].field === 'precio_1')
 
   return (
@@ -129,7 +166,7 @@ function TireCard({ tire }: { tire: TireRecord }) {
       ) : singlePrice ? (
         <div className="mt-3 flex items-baseline justify-between rounded-xl bg-emerald-50 p-3">
           <span className="text-sm text-emerald-800">Precio</span>
-          <strong className="text-xl text-emerald-800">{formatMoney(tire.precio_1)}</strong>
+          <strong className="text-xl text-emerald-800">{formatMoney(tire.precio_1 ?? 0)}</strong>
         </div>
       ) : (
         <table className="mt-3 w-full text-sm">
@@ -137,7 +174,7 @@ function TireCard({ tire }: { tire: TireRecord }) {
             {prices.map(({ field, label }) => (
               <tr key={field} className="border-t border-slate-100 first:border-t-0">
                 <td className="py-1.5 text-slate-600">{label}</td>
-                <td className="py-1.5 text-right font-semibold text-slate-900">{formatMoney(tire[field])}</td>
+                <td className="py-1.5 text-right font-semibold text-slate-900">{formatMoney(tire[field] ?? 0)}</td>
               </tr>
             ))}
           </tbody>

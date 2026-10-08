@@ -15,12 +15,20 @@ Backend de FastAPI para validar y conciliar los reportes de inventario y precios
 ```text
 backend/
 ├── main.py          # Aplicación HTTP y contrato del endpoint
+├── config.py        # Variables de entorno (.env)
+├── db.py            # Escritura en Supabase
 ├── processing.py    # Lectura, normalización y conciliación de archivos
 └── readme.md
 ```
 
-La API todavía no persiste datos. La respuesta de importación sirve como
-previsualización hasta conectar PostgreSQL/Supabase.
+La API guarda cada importación en Supabase: los precios se actualizan (upsert)
+y las existencias reemplazan la foto completa de la sucursal.
+
+## Configuración
+
+Copia `.env.example` como `.env` y completa `SUPABASE_SERVICE_ROLE_KEY`
+(llave secreta del proyecto). El esquema de la base de datos está en
+`../supabase/migrations/` y se ejecuta en el SQL Editor de Supabase.
 
 ## Ejecución local
 
@@ -36,7 +44,7 @@ uvicorn main:app --reload
 El endpoint disponible es:
 
 ```text
-POST /api/v1/process-excel
+POST /api/v1/import
 ```
 
 Recibe `inventory_file` (reporte de existencias del ERP) y `prices_file`
