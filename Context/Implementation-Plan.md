@@ -52,9 +52,9 @@ Complementa a [Technical-Specifications.md](Technical-Specifications.md). Orden 
 - [x] Política de contraseñas (12+, mayúsculas, minúsculas, números), recuperación y cambio de contraseña.
 - [x] MFA (TOTP) obligatorio para administradores, opcional para vendedores; exigido en backend y RLS.
 - [x] Caché borrada al bloquear, límite de 20 MB, protección del último administrador.
-- [ ] Ejecutar migración `20261008000000_security_hardening.sql` y ajustar el panel de Supabase.
-- [ ] SMTP propio (necesario antes de dar acceso a vendedores reales).
-- [ ] CAPTCHA (Turnstile) y encabezados de seguridad, junto con el despliegue.
+- [x] Ejecutar migración `20261008000000_security_hardening.sql` y ajustar el panel de Supabase.
+- [x] SMTP propio (Gmail con contraseña de aplicación).
+- [x] CAPTCHA (Turnstile) y encabezados de seguridad, junto con el despliegue.
 
 ## Fase 3 — Despliegue
 
@@ -67,7 +67,7 @@ Complementa a [Technical-Specifications.md](Technical-Specifications.md). Orden 
 - [x] Íconos PWA (192, 512, maskable, apple-touch, favicon) y manifiesto en español.
 - [x] Backend listo para producción: `render.yaml`, dependencias fijas, `/docs` oculto, encabezados de seguridad, CORS restringido.
 - [x] Frontend: `vercel.json` con CSP estricta y encabezados de seguridad; CAPTCHA Turnstile (se activa con `VITE_TURNSTILE_SITE_KEY`).
-- [ ] Desplegar siguiendo [Deployment-Guide.md](Deployment-Guide.md).
+- [x] Desplegado (2026-10-08): frontend https://pecarsys-mobile.vercel.app · backend https://pecarsys-api.onrender.com. Verificado: encabezados de seguridad, `/docs` oculto, CORS sólo para el dominio de Vercel, sin llaves secretas en el código público, CAPTCHA exigido por Supabase.
 - [x] Depurar `requirements.txt` (sin `pdfplumber`; versiones fijas).
 - [ ] Pruebas en Android e iOS: instalación en pantalla de inicio, búsqueda, importación.
 

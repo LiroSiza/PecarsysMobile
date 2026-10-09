@@ -17,7 +17,7 @@ Cada servicio necesita la dirección del otro; seguir el orden evita errores de 
 1. Render → **New → Blueprint** → elige el repositorio. Render lee `render.yaml` y propone el servicio **pecarsys-api**.
 2. Te pedirá los valores secretos:
    - `SUPABASE_SERVICE_ROLE_KEY`: la llave secreta (`sb_secret_…`).
-   - `CORS_ORIGINS`: por ahora `https://pecarsys-movil.vercel.app` (se corrige en el paso 3 si Vercel asigna otro dominio).
+   - `CORS_ORIGINS`: por ahora `https://pecarsys-mobile.vercel.app` (se corrige en el paso 3 si Vercel asigna otro dominio).
 3. **Apply**. Espera a que el despliegue termine (*Live*).
 4. Anota la URL del servicio, p. ej. `https://pecarsys-api.onrender.com`, y verifica en el navegador:
    - `https://…onrender.com/` → `{"status":"online", …}`
@@ -36,7 +36,7 @@ Cada servicio necesita la dirección del otro; seguir el orden evita errores de 
    | `VITE_SUPABASE_URL` | `https://dveissdkttqrgkuwmsdu.supabase.co` |
    | `VITE_SUPABASE_PUBLISHABLE_KEY` | llave pública `sb_publishable_…` |
 
-4. **Deploy**. Anota el dominio de producción, p. ej. `https://pecarsys-movil.vercel.app`.
+4. **Deploy**. Anota el dominio de producción, p. ej. `https://pecarsys-mobile.vercel.app`.
    - Si quieres ese nombre exacto, en *Settings → Domains* puedes ajustar el subdominio `.vercel.app`.
 
 ## 3. CORS en Render

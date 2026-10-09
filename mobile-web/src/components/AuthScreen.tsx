@@ -10,6 +10,11 @@ import Turnstile from './Turnstile'
 
 type Mode = 'login' | 'register' | 'forgot'
 
+// Debe terminar en "/" para coincidir con el patrón "https://dominio/**" de
+// Supabase > Authentication > URL Configuration > Redirect URLs. Si no coincide,
+// Supabase ignora el enlace y redirige al Site URL.
+const AUTH_REDIRECT_URL = `${window.location.origin}/`
+
 const REDIRECT_ERRORS: Record<string, string> = {
   otp_expired: 'El enlace expiró o ya fue usado. Si pediste varios correos, sólo funciona el más reciente. Solicita uno nuevo.',
   access_denied: 'El enlace no es válido. Solicita uno nuevo.',
@@ -53,7 +58,7 @@ export default function AuthScreen() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
-        options: { data: { full_name: fullName.trim() }, emailRedirectTo: window.location.origin, captchaToken: captcha },
+        options: { data: { full_name: fullName.trim() }, emailRedirectTo: AUTH_REDIRECT_URL, captchaToken: captcha },
       })
       if (signUpError) setError(translateAuthError(signUpError))
       else if (!data.session) {
@@ -63,7 +68,7 @@ export default function AuthScreen() {
         })
       }
     } else {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo: window.location.origin, captchaToken: captcha })
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo: AUTH_REDIRECT_URL, captchaToken: captcha })
       // Mismo mensaje exista o no la cuenta, para no revelar qué correos están registrados.
       if (resetError && resetError.code?.includes('rate_limit')) setError(translateAuthError(resetError))
       else {

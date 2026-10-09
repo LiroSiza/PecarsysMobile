@@ -74,7 +74,10 @@ Objetivo: nivel de seguridad **alto** para información comercial confidencial (
 | H8 Caché | ✅ Se borra al detectar cuenta bloqueada o pendiente. |
 | H9 Archivos | ✅ Máximo 20 MB por archivo. |
 | H10 Último admin | ✅ Trigger en la base impide bloquear o degradar al último admin activo. |
-| H3, H5, H6, H7 | ⏳ Pendientes (SMTP propio, CAPTCHA, sesiones Pro, encabezados en despliegue). |
+| H3 SMTP | ✅ SMTP propio configurado. |
+| H5 CAPTCHA | ✅ Turnstile en inicio de sesión, registro y recuperación; verificado que Supabase rechaza peticiones sin token (`captcha_failed`). |
+| H7 Encabezados | ✅ CSP estricta (sin scripts en línea), HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` en Vercel; equivalentes en el backend. |
+| H6 Sesiones | ⏳ Requiere plan Pro. |
 
 **Si un administrador pierde su teléfono:** otro admin no puede quitarle el MFA desde la app. Se elimina el factor desde Supabase > Authentication > Users > (usuario) > *Remove MFA factors*, y al volver a entrar se le pedirá dar de alta uno nuevo.
 
